@@ -356,8 +356,11 @@ canvas {
 <script>
 const tg = window.Telegram?.WebApp;
 
-// Проверка — открыто в Telegram или нет
-if (!tg || !tg.initData) {
+// Проверка — открыто в обычном браузере (не Telegram)
+const isInsideTelegram = tg && (tg.initData || tg.platform !== 'unknown');
+const isRegularBrowser = !tg || (!tg.initData && !navigator.userAgent.includes('Telegram'));
+
+if (isRegularBrowser) {
   document.body.innerHTML = `
     <div style="
       min-height:100vh; display:flex; flex-direction:column;
@@ -381,8 +384,7 @@ if (!tg || !tg.initData) {
     </div>
   `;
 } else {
-  tg.ready();
-  tg.expand();
+  if (tg) { tg.ready(); tg.expand(); }
 }
 
 // ════════════════════════════════════════════════
@@ -478,6 +480,12 @@ function showResult(p) {
   text.textContent = p.label.replace('\n', ' ');
   text.style.color = p.accent;
 
+  // ✅ Сразу отправляем боту — прокрут зафиксирован
+  // даже если клиент закроет окно не нажав кнопку
+  if (tg && tg.initData) {
+    tg.sendData(JSON.stringify({ prize: p.label.replace('\n', ' '), ts: Date.now() }));
+  }
+
   if (isLoss) {
     hint.textContent = 'Удача в следующий раз! 🍀';
     card.style.borderColor = '#333';
@@ -496,13 +504,9 @@ function showResult(p) {
 }
 
 function claimPrize() {
-  if (!wonPrize) return;
-  // Отправляем данные боту и закрываем окно
+  // Просто закрываем окно — данные уже отправлены при остановке колеса
   if (tg) {
-    tg.sendData(JSON.stringify({ prize: wonPrize.label.replace('\n', ' '), ts: Date.now() }));
-  } else {
-    // Для теста в браузере
-    alert('Приз: ' + wonPrize.label);
+    tg.close();
   }
 }
 
