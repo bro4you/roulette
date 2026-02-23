@@ -231,6 +231,7 @@ async def stats(msg: types.Message):
 
 @dp.message(Command("reset_me"))
 async def reset_me(msg: types.Message):
+    """Сброс своего прокрута для теста"""
     if msg.from_user.id != ADMIN_ID:
         return
     db = load_db()
@@ -241,6 +242,43 @@ async def reset_me(msg: types.Message):
         await msg.answer("✅ Твой прокрут сброшен.")
     else:
         await msg.answer("У тебя нет прокрута в этом месяце.")
+
+@dp.message(Command("reset_all"))
+async def reset_all(msg: types.Message):
+    """Сброс ВСЕЙ базы прокрутов"""
+    if msg.from_user.id != ADMIN_ID:
+        return
+    db = load_db()
+    count = len(db["spins"])
+    db["spins"] = {}
+    save_db(db)
+    await msg.answer(f"✅ База полностью сброшена. Удалено записей: {count}")
+
+@dp.message(Command("reset_user"))
+async def reset_user(msg: types.Message):
+    """Сброс конкретного пользователя.
+    Использование: /reset_user 123456789"""
+    if msg.from_user.id != ADMIN_ID:
+        return
+    parts = msg.text.split()
+    if len(parts) < 2:
+        await msg.answer(
+            "Укажи ID пользователя:\n"
+            "<code>/reset_user 123456789</code>\n\n"
+            "ID можно найти в уведомлении о прокруте или через /stats",
+            parse_mode="HTML"
+        )
+        return
+    uid = parts[1].strip()
+    db = load_db()
+    if uid in db["spins"]:
+        name = db["spins"][uid].get("full_name", "—")
+        uname = db["spins"][uid].get("username", "—")
+        del db["spins"][uid]
+        save_db(db)
+        await msg.answer(f"✅ Прокрут сброшен:\n{name} (@{uname}) ID: <code>{uid}</code>", parse_mode="HTML")
+    else:
+        await msg.answer(f"❌ Пользователь <code>{uid}</code> не найден в базе.", parse_mode="HTML")
 
 # ── Запуск ────────────────────────────────────────
 
