@@ -1,5 +1,5 @@
 """
-🎰 Рулетка-бот — исправленная версия
+🎰 Рулетка-бот — исправленная версия (fix: ConflictError)
 """
 
 import os
@@ -206,6 +206,8 @@ async def cmd_reset(message: types.Message):
 
 async def main():
     logging.info("Bot starting...")
+    # ✅ FIX: сбрасываем вебхук перед стартом — устраняет TelegramConflictError
+    await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
