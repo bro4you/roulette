@@ -356,36 +356,7 @@ canvas {
 <script>
 const tg = window.Telegram?.WebApp;
 
-// Проверка — открыто в обычном браузере (не Telegram)
-const isInsideTelegram = tg && (tg.initData || tg.platform !== 'unknown');
-const isRegularBrowser = !tg || (!tg.initData && !navigator.userAgent.includes('Telegram'));
-
-if (isRegularBrowser) {
-  document.body.innerHTML = `
-    <div style="
-      min-height:100vh; display:flex; flex-direction:column;
-      align-items:center; justify-content:center;
-      background:#08080f; color:#fff; font-family:Inter,sans-serif;
-      text-align:center; padding:32px;
-    ">
-      <div style="font-size:48px; margin-bottom:16px">🎰</div>
-      <div style="font-family:sans-serif; font-size:20px; font-weight:700; margin-bottom:12px; color:#FFD700">
-        Только для Telegram
-      </div>
-      <div style="font-size:14px; color:#666; max-width:280px; line-height:1.6">
-        Рулетка работает только внутри Telegram.<br><br>
-        Напиши боту и получи доступ 👇
-      </div>
-      <a href="https://t.me/prizesyashop_bot" style="
-        margin-top:24px; background:linear-gradient(135deg,#FFD700,#FFA500);
-        color:#000; font-weight:700; font-size:14px; padding:14px 28px;
-        border-radius:14px; text-decoration:none;
-      ">Открыть в Telegram</a>
-    </div>
-  `;
-} else {
-  if (tg) { tg.ready(); tg.expand(); }
-}
+if (tg) { tg.ready(); tg.expand(); }
 
 // ════════════════════════════════════════════════
 //  ⚙️ ПРИЗЫ — редактируй здесь!
