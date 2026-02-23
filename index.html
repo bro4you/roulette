@@ -40,6 +40,7 @@ body::before {
   z-index: 0;
 }
 
+/* ── SCREENS ── */
 .screen {
   position: fixed;
   inset: 0;
@@ -53,10 +54,25 @@ body::before {
 }
 .screen.hidden { opacity: 0; pointer-events: none; transform: scale(0.97); }
 
-#rulesScreen { background: var(--dark); }
+/* ── RULES SCREEN ── */
+#rulesScreen {
+  background: var(--dark);
+}
 
-.rules-logo { font-family: 'Unbounded', sans-serif; font-size: 28px; margin-bottom: 8px; }
-.rules-title { font-family: 'Unbounded', sans-serif; font-size: 16px; font-weight: 700; color: var(--gold); text-align: center; margin-bottom: 20px; }
+.rules-logo {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.rules-title {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--gold);
+  text-align: center;
+  margin-bottom: 20px;
+}
 
 .rules-box {
   background: var(--card);
@@ -72,10 +88,26 @@ body::before {
   max-height: 55vh;
   overflow-y: auto;
 }
-.rules-box h3 { color: var(--text); font-size: 13px; font-weight: 600; margin: 12px 0 4px; }
+
+.rules-box h3 {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  margin: 12px 0 4px;
+}
+
 .rules-box h3:first-child { margin-top: 0; }
-.rules-box .highlight { color: var(--gold); font-weight: 600; }
-.rules-box ul { padding-left: 16px; margin: 4px 0; }
+
+.rules-box .highlight {
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.rules-box ul {
+  padding-left: 16px;
+  margin: 4px 0;
+}
+
 .rules-box li { margin-bottom: 4px; }
 
 .notice {
@@ -110,6 +142,7 @@ body::before {
 .btn-agree:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(255,215,0,0.4); }
 .btn-agree:active { transform: translateY(0); }
 
+/* ── WHEEL SCREEN ── */
 #wheelScreen {
   background: var(--dark);
   justify-content: flex-start;
@@ -127,7 +160,12 @@ body::before {
   -webkit-text-fill-color: transparent;
   margin-bottom: 4px;
 }
-.wh-sub { font-size: 12px; color: var(--muted); text-align: center; margin-bottom: 20px; }
+.wh-sub {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+  margin-bottom: 20px;
+}
 
 .wheel-wrapper {
   position: relative;
@@ -193,10 +231,29 @@ canvas {
   transition: border-color 0.4s, box-shadow 0.4s;
   flex-shrink: 0;
 }
-.result-card.won { border-color: var(--gold); box-shadow: 0 0 24px rgba(255,215,0,0.12); }
-.result-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 6px; }
-.result-text { font-family: 'Unbounded', sans-serif; font-size: clamp(13px, 3.5vw, 16px); font-weight: 700; color: var(--gold); line-height: 1.4; }
-.result-hint { font-size: 11px; color: var(--muted); margin-top: 6px; }
+.result-card.won {
+  border-color: var(--gold);
+  box-shadow: 0 0 24px rgba(255,215,0,0.12);
+}
+.result-label {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 6px;
+}
+.result-text {
+  font-family: 'Unbounded', sans-serif;
+  font-size: clamp(13px, 3.5vw, 16px);
+  font-weight: 700;
+  color: var(--gold);
+  line-height: 1.4;
+}
+.result-hint {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 6px;
+}
 
 .btn-claim {
   display: none;
@@ -214,9 +271,16 @@ canvas {
   max-width: 320px;
   box-shadow: 0 4px 20px rgba(255,215,0,0.35);
   transition: transform 0.15s;
+  animation: pulse 1.5s infinite;
 }
 .btn-claim:hover { transform: scale(1.03); }
 
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(255,215,0,0.35); }
+  50% { box-shadow: 0 4px 32px rgba(255,215,0,0.65); }
+}
+
+/* ── CONFETTI ── */
 .cf {
   position: fixed;
   width: 7px; height: 7px;
@@ -239,7 +303,7 @@ canvas {
 
   <div class="rules-box">
     <h3>ℹ️ Что это такое?</h3>
-    Данная акция является <span class="highlight">маркетинговой программой лояльности</span> и не является азартной игрой, лотереей или иной формой gambling.
+    Данная акция является <span class="highlight">маркетинговой программой лояльности</span> и не является азартной игрой, лотереей или иной формой gambling. Призы носят исключительно маркетинговый характер (скидки и бесплатные бонусные услуги). Никакие денежные средства не вносятся и не разыгрываются.
 
     <h3>📌 Условия участия</h3>
     <ul>
@@ -250,21 +314,21 @@ canvas {
     </ul>
 
     <h3>🏆 Призы</h3>
-    Призы — маркетинговые бонусы: скидки и бесплатные услуги. Денежный эквивалент не предусмотрен.
+    Призы — это маркетинговые бонусы: скидки и бесплатные услуги. Денежный эквивалент не предусмотрен. Передача приза третьим лицам не допускается.
 
     <h3>⏱ Срок выдачи приза</h3>
-    <span class="highlight">До 14 календарных дней</span> с момента розыгрыша.
+    Срок выдачи приза составляет <span class="highlight">до 14 календарных дней</span> с момента розыгрыша. В случае форс-мажорных обстоятельств (технические сбои, праздники и иные непредвиденные ситуации) организатор вправе перенести срок выдачи, уведомив участника в индивидуальном порядке.
 
     <h3>📋 Прочее</h3>
     <ul>
-      <li>Организатор вправе изменять призовой фонд без уведомления</li>
-      <li>Результат розыгрыша случаен и окончателен</li>
-      <li>Злоупотребления ведут к дисквалификации</li>
+      <li>Организатор вправе изменять призовой фонд без предварительного уведомления</li>
+      <li>Результат розыгрыша является случайным и окончательным</li>
+      <li>Злоупотребления (мультиаккаунты, ботоводство) ведут к дисквалификации</li>
     </ul>
   </div>
 
   <div class="notice">
-    Нажимая «Принимаю и участвую», вы подтверждаете согласие с правилами.
+    Нажимая «Принимаю и участвую», вы подтверждаете, что ознакомились с правилами и согласны с ними.
   </div>
 
   <button class="btn-agree" onclick="agreeAndPlay()">✅ Принимаю и участвую</button>
@@ -286,28 +350,31 @@ canvas {
     <div class="result-text" id="resultText">Жми кнопку!</div>
     <div class="result-hint" id="resultHint"></div>
   </div>
-  <button class="btn-claim" id="claimBtn" onclick="closeMiniApp()">🎁 Забрать приз!</button>
+  <button class="btn-claim" id="claimBtn" onclick="claimPrize()">🎁 Забрать приз!</button>
 </div>
 
 <script>
-// ✅ Инициализация Telegram WebApp
 const tg = window.Telegram?.WebApp;
-if (tg) {
-  tg.ready();
-  tg.expand();
-}
 
+if (tg) { tg.ready(); tg.expand(); }
+
+// ════════════════════════════════════════════════
+//  ⚙️ ПРИЗЫ — редактируй здесь!
+//  weight = вероятность (больше число = чаще выпадает)
+// ════════════════════════════════════════════════
 const PRIZES = [
   { label: "1 отзыв\nбесплатно",   color: "#141428", accent: "#FFD700", weight: 3 },
   { label: "Скидка\n10%",           color: "#0e1a2e", accent: "#00C8FF", weight: 3 },
-  { label: "2 отзыва\nбесплатно",   color: "#1a0e2e", accent: "#FF6BCB", weight: 1 },
+  { label: "2 отзыва\nбесплатно",   color: "#1a0e2e", accent: "#FF6BCB", weight: 1 }, // редкий
   { label: "Скидка\n15%",           color: "#0e2818", accent: "#A8FF3E", weight: 2 },
   { label: "Бонус на\nсл. заказ",   color: "#2e1a0e", accent: "#FF9F43", weight: 3 },
-  { label: "Попробуй\nещё раз 😅",  color: "#111111", accent: "#555566", weight: 4 },
+  { label: "Попробуй\nещё раз 😅",  color: "#111111", accent: "#555566", weight: 4 }, // чаще всего
   { label: "Скидка\n5%",            color: "#141428", accent: "#B48FFF", weight: 3 },
-  { label: "3 отзыва\nбесплатно",   color: "#1a0e0e", accent: "#FF4444", weight: 1 },
+  { label: "3 отзыва\nбесплатно",   color: "#1a0e0e", accent: "#FF4444", weight: 1 }, // редкий
 ];
+// ════════════════════════════════════════════════
 
+// Колесо
 const canvas = document.getElementById('wheel');
 const ctx = canvas.getContext('2d');
 const N = PRIZES.length;
@@ -330,8 +397,10 @@ function drawWheel(a) {
     ctx.beginPath(); ctx.moveTo(CX, CY); ctx.arc(CX, CY, R, s, e); ctx.closePath();
     ctx.fillStyle = p.color; ctx.fill();
     ctx.strokeStyle = '#0a0a12'; ctx.lineWidth = 2; ctx.stroke();
+    // цветная дуга
     ctx.beginPath(); ctx.arc(CX, CY, R - 7, s + 0.06, e - 0.06);
     ctx.strokeStyle = p.accent; ctx.lineWidth = 4; ctx.stroke();
+    // текст
     ctx.save();
     ctx.translate(CX, CY); ctx.rotate(s + ARC / 2);
     ctx.textAlign = 'right'; ctx.fillStyle = '#fff'; ctx.font = 'bold 10px Inter';
@@ -340,6 +409,7 @@ function drawWheel(a) {
     });
     ctx.restore();
   }
+  // центр
   ctx.beginPath(); ctx.arc(CX, CY, 30, 0, 2*Math.PI);
   ctx.fillStyle = '#08080f'; ctx.fill();
   ctx.strokeStyle = '#222230'; ctx.lineWidth = 2; ctx.stroke();
@@ -367,7 +437,10 @@ function spin() {
   })(performance.now());
 }
 
+let wonPrize = null;
+
 function showResult(p) {
+  wonPrize = p;
   const card = document.getElementById('resultCard');
   const text = document.getElementById('resultText');
   const hint = document.getElementById('resultHint');
@@ -378,32 +451,34 @@ function showResult(p) {
   text.textContent = p.label.replace('\n', ' ');
   text.style.color = p.accent;
 
-  // ✅ ИСПРАВЛЕНО: убрана проверка tg.initData — она может быть пустой
-  // sendData всегда отправляется если объект tg существует
-  if (tg) {
-    try {
-      tg.sendData(JSON.stringify({ prize: p.label.replace('\n', ' '), ts: Date.now() }));
-    } catch(e) {
-      console.error('sendData error:', e);
-    }
+  // ✅ Сразу отправляем боту — прокрут зафиксирован
+  // даже если клиент закроет окно не нажав кнопку
+  if (tg && tg.initData) {
+    tg.sendData(JSON.stringify({ prize: p.label.replace('\n', ' '), ts: Date.now() }));
   }
 
   if (isLoss) {
     hint.textContent = 'Удача в следующий раз! 🍀';
     card.style.borderColor = '#333';
-    claimBtn.textContent = '👌 Закрыть';
+    claimBtn.textContent = '👌 Понятно, закрыть';
     claimBtn.style.background = '#222230';
     claimBtn.style.color = '#aaa';
+    claimBtn.style.boxShadow = 'none';
+    claimBtn.style.animation = 'none';
   } else {
-    hint.textContent = 'Нажми кнопку — бот пришлёт подтверждение! 🎉';
+    hint.textContent = 'Нажми кнопку ниже — бот пришлёт подтверждение! 🎉';
+    claimBtn.textContent = '🎁 Забрать приз!';
     confetti(p.accent);
   }
 
   claimBtn.style.display = 'block';
 }
 
-function closeMiniApp() {
-  if (tg) tg.close();
+function claimPrize() {
+  // Просто закрываем окно — данные уже отправлены при остановке колеса
+  if (tg) {
+    tg.close();
+  }
 }
 
 function agreeAndPlay() {
@@ -412,7 +487,7 @@ function agreeAndPlay() {
 }
 
 function confetti(accentColor) {
-  const colors = ['#FFD700','#FF6BCB','#00C8FF','#A8FF3E', accentColor];
+  const colors = ['#FFD700','#FF6BCB','#00C8FF','#A8FF3E',accentColor];
   for (let i = 0; i < 55; i++) {
     setTimeout(() => {
       const el = document.createElement('div');
