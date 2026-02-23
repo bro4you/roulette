@@ -255,31 +255,6 @@ canvas {
   margin-top: 6px;
 }
 
-.btn-claim {
-  display: none;
-  margin-top: 16px;
-  background: linear-gradient(135deg, var(--gold), var(--gold2));
-  border: none;
-  border-radius: 14px;
-  padding: 14px 28px;
-  font-family: 'Unbounded', sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  color: #000;
-  cursor: pointer;
-  width: 100%;
-  max-width: 320px;
-  box-shadow: 0 4px 20px rgba(255,215,0,0.35);
-  transition: transform 0.15s;
-  animation: pulse 1.5s infinite;
-}
-.btn-claim:hover { transform: scale(1.03); }
-
-@keyframes pulse {
-  0%, 100% { box-shadow: 0 4px 20px rgba(255,215,0,0.35); }
-  50% { box-shadow: 0 4px 32px rgba(255,215,0,0.65); }
-}
-
 /* ── CONFETTI ── */
 .cf {
   position: fixed;
@@ -350,12 +325,10 @@ canvas {
     <div class="result-text" id="resultText">Жми кнопку!</div>
     <div class="result-hint" id="resultHint"></div>
   </div>
-  <button class="btn-claim" id="claimBtn" onclick="claimPrize()">🎁 Забрать приз!</button>
 </div>
 
 <script>
 const tg = window.Telegram?.WebApp;
-
 if (tg) { tg.ready(); tg.expand(); }
 
 // ════════════════════════════════════════════════
@@ -437,47 +410,27 @@ function spin() {
   })(performance.now());
 }
 
-let wonPrize = null;
-
 function showResult(p) {
-  wonPrize = p;
   const card = document.getElementById('resultCard');
   const text = document.getElementById('resultText');
   const hint = document.getElementById('resultHint');
-  const claimBtn = document.getElementById('claimBtn');
   const isLoss = p.accent === '#555566';
 
   card.classList.add('won');
   text.textContent = p.label.replace('\n', ' ');
   text.style.color = p.accent;
 
-  // ✅ Сразу отправляем боту — прокрут зафиксирован
-  // даже если клиент закроет окно не нажав кнопку
-  if (tg && tg.initData) {
-    tg.sendData(JSON.stringify({ prize: p.label.replace('\n', ' '), ts: Date.now() }));
-  }
-
   if (isLoss) {
     hint.textContent = 'Удача в следующий раз! 🍀';
     card.style.borderColor = '#333';
-    claimBtn.textContent = '👌 Понятно, закрыть';
-    claimBtn.style.background = '#222230';
-    claimBtn.style.color = '#aaa';
-    claimBtn.style.boxShadow = 'none';
-    claimBtn.style.animation = 'none';
   } else {
-    hint.textContent = 'Нажми кнопку ниже — бот пришлёт подтверждение! 🎉';
-    claimBtn.textContent = '🎁 Забрать приз!';
+    hint.textContent = 'Свяжись с нами — приз выдадим в течение 14 дней 🎉';
     confetti(p.accent);
   }
 
-  claimBtn.style.display = 'block';
-}
-
-function claimPrize() {
-  // Просто закрываем окно — данные уже отправлены при остановке колеса
+  // Отправляем боту
   if (tg) {
-    tg.close();
+    tg.sendData(JSON.stringify({ prize: p.label.replace('\n', ' '), ts: Date.now() }));
   }
 }
 
