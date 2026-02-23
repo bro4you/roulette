@@ -1,9 +1,10 @@
 """
-🎰 Рулетка-бот — исправленная версия (fix: ConflictError)
+🎰 Рулетка-бот — версия с SQLite (данные не слетают при перезапуске)
 """
 
 import os
 import json
+import sqlite3
 import logging
 from datetime import datetime, timezone
 from aiogram import Bot, Dispatcher, types, F
@@ -16,7 +17,7 @@ from aiogram.types import (
 logging.basicConfig(level=logging.INFO)
 
 # ════════════════════════════════════════════════
-#  ⚙️  КОНФИГ
+#  ⚙️  КОНФИГ — переменные задаются в Railway
 # ════════════════════════════════════════════════
 BOT_TOKEN  = os.getenv("BOT_TOKEN", "")
 ADMIN_ID   = int(os.getenv("ADMIN_ID", "0"))
@@ -27,21 +28,58 @@ WEBAPP_URL = os.getenv("WEBAPP_URL", "https://bro4you.github.io/roulette")
 bot = Bot(token=BOT_TOKEN)
 dp  = Dispatcher()
 
-# Хранилище в памяти: {user_id: {"year": int, "month": int, "prize": str}}
-spins: dict = {}
-# Кто принял правила
-agreed: dict = {}
+# ── База данных SQLite ───────────────────────────
+
+DB_PATH = "roulette.db"
+
+def init_db():
+    with sqlite3.connect(DB_PATH) as db:
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS spins (
+                user_id   INTEGER PRIMARY KEY,
+                year      INTEGER NOT NULL,
+                month     INTEGER NOT NULL,
+                prize     TEXT NOT NULL
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS agreed (
+                user_id   INTEGER PRIMARY KEY
+            )
+        """)
 
 def already_spun_this_month(user_id: int) -> bool:
-    if user_id not in spins:
-        return False
     now = datetime.now(timezone.utc)
-    s = spins[user_id]
-    return s["year"] == now.year and s["month"] == now.month
+    with sqlite3.connect(DB_PATH) as db:
+        row = db.execute(
+            "SELECT year, month FROM spins WHERE user_id = ?", (user_id,)
+        ).fetchone()
+    if not row:
+        return False
+    return row[0] == now.year and row[1] == now.month
 
 def save_spin(user_id: int, prize: str):
     now = datetime.now(timezone.utc)
-    spins[user_id] = {"year": now.year, "month": now.month, "prize": prize}
+    with sqlite3.connect(DB_PATH) as db:
+        db.execute("""
+            INSERT INTO spins (user_id, year, month, prize)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET year=excluded.year, month=excluded.month, prize=excluded.prize
+        """, (user_id, now.year, now.month, prize))
+
+def has_agreed(user_id: int) -> bool:
+    with sqlite3.connect(DB_PATH) as db:
+        row = db.execute("SELECT 1 FROM agreed WHERE user_id = ?", (user_id,)).fetchone()
+    return row is not None
+
+def save_agreed(user_id: int):
+    with sqlite3.connect(DB_PATH) as db:
+        db.execute("INSERT OR IGNORE INTO agreed (user_id) VALUES (?)", (user_id,))
+
+def reset_all():
+    with sqlite3.connect(DB_PATH) as db:
+        db.execute("DELETE FROM spins")
+        db.execute("DELETE FROM agreed")
 
 # ── Клавиатуры ───────────────────────────────────
 
@@ -97,14 +135,14 @@ RULES_TEXT = (
 @dp.message(CommandStart())
 async def cmd_start(message: types.Message):
     user = message.from_user
-    if user.id not in agreed:
+    if not has_agreed(user.id):
         await message.answer(RULES_TEXT, reply_markup=rules_kb(), parse_mode="HTML")
     else:
         await show_spin_or_block(message, user)
 
 @dp.callback_query(F.data == "agree")
 async def cb_agree(call: types.CallbackQuery):
-    agreed[call.from_user.id] = True
+    save_agreed(call.from_user.id)
     await call.answer("Правила приняты ✅")
     await call.message.edit_reply_markup(reply_markup=None)
     await show_spin_or_block(call.message, call.from_user)
@@ -175,7 +213,7 @@ async def handle_webapp_data(message: types.Message):
             reply_markup=types.ReplyKeyboardRemove()
         )
 
-    # Уведомление админу
+    # ✅ Уведомление админу
     if ADMIN_ID:
         status = "😅 Не повезло" if is_loss else f"🏆 {prize}"
         try:
@@ -188,25 +226,43 @@ async def handle_webapp_data(message: types.Message):
                 f"🕐 {datetime.now().strftime('%d.%m.%Y %H:%M')}",
                 parse_mode="HTML"
             )
+            logging.info(f"Admin notified: {ADMIN_ID}")
         except Exception as e:
             logging.error(f"Admin notify failed: {e}")
+    else:
+        logging.warning("ADMIN_ID не задан — уведомление не отправлено!")
 
-# ── Сброс для теста (только для админа) ─────────
+# ── Команды для админа ───────────────────────────
 
 @dp.message(Command("reset"))
 async def cmd_reset(message: types.Message):
     if message.from_user.id == ADMIN_ID:
-        spins.clear()
-        agreed.clear()
-        await message.answer("✅ База сброшена")
+        reset_all()
+        await message.answer("✅ База полностью сброшена")
     else:
         await message.answer("❌ Нет доступа")
+
+@dp.message(Command("stats"))
+async def cmd_stats(message: types.Message):
+    if message.from_user.id != ADMIN_ID:
+        await message.answer("❌ Нет доступа")
+        return
+    with sqlite3.connect(DB_PATH) as db:
+        total = db.execute("SELECT COUNT(*) FROM spins").fetchone()[0]
+        wins  = db.execute("SELECT COUNT(*) FROM spins WHERE prize NOT LIKE '%ещё раз%'").fetchone()[0]
+        rows  = db.execute("SELECT user_id, prize FROM spins ORDER BY rowid DESC LIMIT 10").fetchall()
+
+    lines = [f"📊 <b>Статистика</b>\n\nВсего прокрутов: <b>{total}</b>\nПобедителей: <b>{wins}</b>\n\n<b>Последние 10:</b>"]
+    for uid, prize in rows:
+        lines.append(f"• <code>{uid}</code> — {prize}")
+    await message.answer("\n".join(lines), parse_mode="HTML")
 
 # ── Запуск ───────────────────────────────────────
 
 async def main():
-    logging.info("Bot starting...")
-    # ✅ FIX: сбрасываем вебхук перед стартом — устраняет TelegramConflictError
+    init_db()
+    logging.info(f"Bot starting... ADMIN_ID={ADMIN_ID}, CHANNEL_ID={CHANNEL_ID}")
+    # Сбрасываем вебхук — устраняет TelegramConflictError при редеплое
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
