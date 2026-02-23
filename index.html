@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Рулетка розыгрыша</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --gold: #FFD700;
+  --gold2: #FFA500;
+  --dark: #08080f;
+  --card: #111118;
+  --border: #222230;
+  --text: #e0e0f0;
+  --muted: #555566;
+}
+
+body {
+  background: var(--dark);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at 70% 10%, rgba(255,215,0,0.05) 0%, transparent 55%),
+              radial-gradient(ellipse at 10% 90%, rgba(120,60,255,0.04) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── SCREENS ── */
+.screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 20px;
+  z-index: 10;
+  transition: opacity 0.3s, transform 0.3s;
+}
+.screen.hidden { opacity: 0; pointer-events: none; transform: scale(0.97); }
+
+/* ── RULES SCREEN ── */
+#rulesScreen {
+  background: var(--dark);
+}
+
+.rules-logo {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.rules-title {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--gold);
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.rules-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  max-width: 420px;
+  width: 100%;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #aaa;
+  margin-bottom: 16px;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+
+.rules-box h3 {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  margin: 12px 0 4px;
+}
+
+.rules-box h3:first-child { margin-top: 0; }
+
+.rules-box .highlight {
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.rules-box ul {
+  padding-left: 16px;
+  margin: 4px 0;
+}
+
+.rules-box li { margin-bottom: 4px; }
+
+.notice {
+  background: rgba(255,215,0,0.06);
+  border: 1px solid rgba(255,215,0,0.2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: #aaa;
+  max-width: 420px;
+  width: 100%;
+  margin-bottom: 16px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.btn-agree {
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  border: none;
+  border-radius: 14px;
+  padding: 16px 32px;
+  font-family: 'Unbounded', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #000;
+  cursor: pointer;
+  width: 100%;
+  max-width: 420px;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 20px rgba(255,215,0,0.3);
+}
+.btn-agree:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(255,215,0,0.4); }
+.btn-agree:active { transform: translateY(0); }
+
+/* ── WHEEL SCREEN ── */
+#wheelScreen {
+  background: var(--dark);
+  justify-content: flex-start;
+  padding-top: 20px;
+  overflow-y: auto;
+}
+
+.wh-title {
+  font-family: 'Unbounded', sans-serif;
+  font-size: clamp(15px, 4.5vw, 22px);
+  font-weight: 900;
+  text-align: center;
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 4px;
+}
+.wh-sub {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.wheel-wrapper {
+  position: relative;
+  width: min(300px, 82vw);
+  height: min(300px, 82vw);
+  margin: 0 auto 20px;
+  flex-shrink: 0;
+}
+
+.wheel-pointer {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 11px solid transparent;
+  border-right: 11px solid transparent;
+  border-top: 22px solid var(--gold);
+  z-index: 10;
+  filter: drop-shadow(0 0 8px rgba(255,215,0,0.9));
+}
+
+canvas {
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px var(--border), 0 0 40px rgba(255,215,0,0.12);
+  display: block;
+}
+
+.center-hub {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 54px; height: 54px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Unbounded', sans-serif;
+  font-size: 8px;
+  font-weight: 700;
+  color: #000;
+  letter-spacing: 0.3px;
+  text-align: center;
+  cursor: pointer;
+  border: none;
+  z-index: 5;
+  box-shadow: 0 0 20px rgba(255,215,0,0.5);
+  transition: transform 0.15s, box-shadow 0.15s;
+  line-height: 1.2;
+}
+.center-hub:hover:not(:disabled) { transform: translate(-50%,-50%) scale(1.1); box-shadow: 0 0 32px rgba(255,215,0,0.7); }
+.center-hub:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.result-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 22px;
+  text-align: center;
+  width: 100%;
+  max-width: 320px;
+  transition: border-color 0.4s, box-shadow 0.4s;
+  flex-shrink: 0;
+}
+.result-card.won {
+  border-color: var(--gold);
+  box-shadow: 0 0 24px rgba(255,215,0,0.12);
+}
+.result-label {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 6px;
+}
+.result-text {
+  font-family: 'Unbounded', sans-serif;
+  font-size: clamp(13px, 3.5vw, 16px);
+  font-weight: 700;
+  color: var(--gold);
+  line-height: 1.4;
+}
+.result-hint {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+/* ── CONFETTI ── */
+.cf {
+  position: fixed;
+  width: 7px; height: 7px;
+  top: -10px;
+  border-radius: 2px;
+  pointer-events: none;
+  animation: cfFall linear forwards;
+}
+@keyframes cfFall {
+  to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+</style>
+</head>
+<body>
+
+<!-- ПРАВИЛА -->
+<div class="screen" id="rulesScreen">
+  <div class="rules-logo">🎰</div>
+  <div class="rules-title">Правила участия в акции</div>
+
+  <div class="rules-box">
+    <h3>ℹ️ Что это такое?</h3>
+    Данная акция является <span class="highlight">маркетинговой программой лояльности</span> и не является азартной игрой, лотереей или иной формой gambling. Призы носят исключительно маркетинговый характер (скидки и бесплатные бонусные услуги). Никакие денежные средства не вносятся и не разыгрываются.
+
+    <h3>📌 Условия участия</h3>
+    <ul>
+      <li>Участие — добровольное и <span class="highlight">бесплатное</span></li>
+      <li>1 участие на 1 Telegram-аккаунт <span class="highlight">1 раз в месяц</span></li>
+      <li>Необходима активная подписка на канал организатора</li>
+      <li>Участник должен быть совершеннолетним</li>
+    </ul>
+
+    <h3>🏆 Призы</h3>
+    Призы — это маркетинговые бонусы: скидки и бесплатные услуги. Денежный эквивалент не предусмотрен. Передача приза третьим лицам не допускается.
+
+    <h3>⏱ Срок выдачи приза</h3>
+    Срок выдачи приза составляет <span class="highlight">до 14 календарных дней</span> с момента розыгрыша. В случае форс-мажорных обстоятельств (технические сбои, праздники и иные непредвиденные ситуации) организатор вправе перенести срок выдачи, уведомив участника в индивидуальном порядке.
+
+    <h3>📋 Прочее</h3>
+    <ul>
+      <li>Организатор вправе изменять призовой фонд без предварительного уведомления</li>
+      <li>Результат розыгрыша является случайным и окончательным</li>
+      <li>Злоупотребления (мультиаккаунты, ботоводство) ведут к дисквалификации</li>
+    </ul>
+  </div>
+
+  <div class="notice">
+    Нажимая «Принимаю и участвую», вы подтверждаете, что ознакомились с правилами и согласны с ними.
+  </div>
+
+  <button class="btn-agree" onclick="agreeAndPlay()">✅ Принимаю и участвую</button>
+</div>
+
+<!-- РУЛЕТКА -->
+<div class="screen hidden" id="wheelScreen">
+  <div class="wh-title">🎰 Розыгрыш</div>
+  <p class="wh-sub">Крути — получи бонус!</p>
+
+  <div class="wheel-wrapper">
+    <div class="wheel-pointer"></div>
+    <canvas id="wheel" width="300" height="300"></canvas>
+    <button class="center-hub" id="spinBtn" onclick="spin()">КРУТИ!</button>
+  </div>
+
+  <div class="result-card" id="resultCard">
+    <div class="result-label">Твой приз</div>
+    <div class="result-text" id="resultText">Жми кнопку!</div>
+    <div class="result-hint" id="resultHint"></div>
+  </div>
+</div>
+
+<script>
+const tg = window.Telegram?.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+
+// ════════════════════════════════════════════════
+//  ⚙️ ПРИЗЫ — редактируй здесь!
+//  weight = вероятность (больше число = чаще выпадает)
+// ════════════════════════════════════════════════
+const PRIZES = [
+  { label: "1 отзыв\nбесплатно",   color: "#141428", accent: "#FFD700", weight: 3 },
+  { label: "Скидка\n10%",           color: "#0e1a2e", accent: "#00C8FF", weight: 3 },
+  { label: "2 отзыва\nбесплатно",   color: "#1a0e2e", accent: "#FF6BCB", weight: 1 }, // редкий
+  { label: "Скидка\n15%",           color: "#0e2818", accent: "#A8FF3E", weight: 2 },
+  { label: "Бонус на\nсл. заказ",   color: "#2e1a0e", accent: "#FF9F43", weight: 3 },
+  { label: "Попробуй\nещё раз 😅",  color: "#111111", accent: "#555566", weight: 4 }, // чаще всего
+  { label: "Скидка\n5%",            color: "#141428", accent: "#B48FFF", weight: 3 },
+  { label: "3 отзыва\nбесплатно",   color: "#1a0e0e", accent: "#FF4444", weight: 1 }, // редкий
+];
+// ════════════════════════════════════════════════
+
+// Колесо
+const canvas = document.getElementById('wheel');
+const ctx = canvas.getContext('2d');
+const N = PRIZES.length;
+const ARC = (2 * Math.PI) / N;
+const CX = canvas.width / 2, CY = canvas.height / 2, R = CX - 6;
+
+let angle = 0, spinning = false, done = false;
+
+function weightedRandom() {
+  const total = PRIZES.reduce((s, p) => s + p.weight, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < N; i++) { r -= PRIZES[i].weight; if (r <= 0) return i; }
+  return N - 1;
+}
+
+function drawWheel(a) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let i = 0; i < N; i++) {
+    const s = a + i * ARC, e = s + ARC, p = PRIZES[i];
+    ctx.beginPath(); ctx.moveTo(CX, CY); ctx.arc(CX, CY, R, s, e); ctx.closePath();
+    ctx.fillStyle = p.color; ctx.fill();
+    ctx.strokeStyle = '#0a0a12'; ctx.lineWidth = 2; ctx.stroke();
+    // цветная дуга
+    ctx.beginPath(); ctx.arc(CX, CY, R - 7, s + 0.06, e - 0.06);
+    ctx.strokeStyle = p.accent; ctx.lineWidth = 4; ctx.stroke();
+    // текст
+    ctx.save();
+    ctx.translate(CX, CY); ctx.rotate(s + ARC / 2);
+    ctx.textAlign = 'right'; ctx.fillStyle = '#fff'; ctx.font = 'bold 10px Inter';
+    p.label.split('\n').forEach((ln, li, arr) => {
+      ctx.fillText(ln, R - 14, (li - (arr.length-1)/2) * 13 + 4);
+    });
+    ctx.restore();
+  }
+  // центр
+  ctx.beginPath(); ctx.arc(CX, CY, 30, 0, 2*Math.PI);
+  ctx.fillStyle = '#08080f'; ctx.fill();
+  ctx.strokeStyle = '#222230'; ctx.lineWidth = 2; ctx.stroke();
+}
+
+drawWheel(angle);
+
+function spin() {
+  if (spinning || done) return;
+  spinning = true; done = true;
+  document.getElementById('spinBtn').disabled = true;
+
+  const idx = weightedRandom();
+  const sectorMid = idx * ARC + ARC / 2;
+  const target = -Math.PI/2 - sectorMid + (5 + Math.floor(Math.random()*4)) * 2*Math.PI;
+  const dur = 4800, t0 = performance.now(), a0 = angle;
+
+  const ease = t => 1 - Math.pow(1 - t, 4);
+  (function frame(now) {
+    const t = Math.min((now - t0) / dur, 1);
+    angle = a0 + (target - a0) * ease(t);
+    drawWheel(angle);
+    if (t < 1) { requestAnimationFrame(frame); }
+    else { showResult(PRIZES[idx]); }
+  })(performance.now());
+}
+
+function showResult(p) {
+  const card = document.getElementById('resultCard');
+  const text = document.getElementById('resultText');
+  const hint = document.getElementById('resultHint');
+  const isLoss = p.accent === '#555566';
+
+  card.classList.add('won');
+  text.textContent = p.label.replace('\n', ' ');
+  text.style.color = p.accent;
+
+  if (isLoss) {
+    hint.textContent = 'Удача в следующий раз! 🍀';
+    card.style.borderColor = '#333';
+  } else {
+    hint.textContent = 'Свяжись с нами — приз выдадим в течение 14 дней 🎉';
+    confetti(p.accent);
+  }
+
+  // Отправляем боту
+  if (tg) {
+    tg.sendData(JSON.stringify({ prize: p.label.replace('\n', ' '), ts: Date.now() }));
+  }
+}
+
+function agreeAndPlay() {
+  document.getElementById('rulesScreen').classList.add('hidden');
+  document.getElementById('wheelScreen').classList.remove('hidden');
+}
+
+function confetti(accentColor) {
+  const colors = ['#FFD700','#FF6BCB','#00C8FF','#A8FF3E',accentColor];
+  for (let i = 0; i < 55; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'cf';
+      el.style.cssText = `left:${Math.random()*100}vw;background:${colors[~~(Math.random()*colors.length)]};animation-duration:${1.5+Math.random()*2}s;animation-delay:${Math.random()*0.5}s;transform:rotate(${Math.random()*360}deg)`;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 3500);
+    }, i * 28);
+  }
+}
+</script>
+</body>
+</html>
