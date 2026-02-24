@@ -291,13 +291,9 @@ function showResult(p) {
   text.textContent = p.label.replace('\n', ' ');
   text.style.color = p.accent;
 
-  // Сразу отправляем боту — прокрут зафиксирован
+  // Сохраняем данные приза — отправим боту только когда пользователь нажмёт кнопку
   const prizeText = p.label.replace('\n', ' ') + (p.note ? ' (' + p.note.replace(/^[^\s]+\s/, '') + ')' : '');
-  if (tg && tg.sendData) {
-    try {
-      tg.sendData(JSON.stringify({ prize: prizeText, ts: Date.now() }));
-    } catch(e) { console.log('sendData error:', e); }
-  }
+  window._pendingPrize = prizeText;
 
   if (isLoss) {
     card.style.borderColor = '#333';
@@ -317,7 +313,16 @@ function showResult(p) {
 }
 
 function claimPrize() {
-  if (tg) tg.close();
+  if (tg && tg.sendData && window._pendingPrize) {
+    try {
+      tg.sendData(JSON.stringify({ prize: window._pendingPrize, ts: Date.now() }));
+    } catch(e) {
+      console.log('sendData error:', e);
+      tg.close();
+    }
+  } else if (tg) {
+    tg.close();
+  }
 }
 
 function agreeAndPlay() {
