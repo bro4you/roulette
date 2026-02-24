@@ -88,13 +88,16 @@ def set_agreed(user_id: int):
 
 async def is_subscribed(user_id: int) -> bool:
     if not CHANNEL_ID:
+        log.warning("CHANNEL_ID не задан — проверка подписки отключена!")
         return True
     try:
         member = await bot.get_chat_member(CHANNEL_ID, user_id)
+        log.info(f"Sub check user={user_id} status={member.status}")
         return member.status in ("member", "administrator", "creator")
     except Exception as e:
-        log.warning(f"Sub check error: {e}")
-        return True
+        log.error(f"Sub check FAILED user={user_id} channel={CHANNEL_ID} error={e}")
+        # Возвращаем False — лучше отказать, чем пропустить без проверки
+        return False
 
 # ── Тексты и клавиатуры ──────────────────────────
 

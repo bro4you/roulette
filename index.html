@@ -333,12 +333,12 @@ function agreeAndPlay() {
 function confetti(accent) {
   const colors = ['#FFD700','#FF6BCB','#00C8FF','#A8FF3E','#FF9F43','#FF4444','#B48FFF', accent];
   const shapes = ['square', 'circle', 'star'];
-  const total = 120;
+  const total = 80;
 
   for (let i = 0; i < total; i++) {
     setTimeout(() => {
       const el = document.createElement('canvas');
-      const size = 6 + Math.random() * 8;
+      const size = 5 + Math.random() * 6;
       el.width = size * 2; el.height = size * 2;
       const c = el.getContext('2d');
       const color = colors[~~(Math.random() * colors.length)];
@@ -362,34 +362,33 @@ function confetti(accent) {
 
       el.style.cssText = `
         position:fixed;
-        left:${Math.random()*110 - 5}vw;
+        left:${Math.random()*100}vw;
         top:-20px;
         pointer-events:none;
-        z-index:9999;
+        z-index:5;
         opacity:1;
         transform-origin:center;
       `;
       document.body.appendChild(el);
 
-      const dur = 2500 + Math.random() * 2500;
-      const drift = (Math.random() - 0.5) * 300;
-      const rotations = 360 * (2 + Math.random() * 4) * (Math.random() > 0.5 ? 1 : -1);
+      const dur = 2000 + Math.random() * 2000;
+      const drift = (Math.random() - 0.5) * 150;
+      const rotations = 360 * (2 + Math.random() * 3) * (Math.random() > 0.5 ? 1 : -1);
       const startTime = performance.now();
 
       (function animate(now) {
         const t = (now - startTime) / dur;
         if (t >= 1) { el.remove(); return; }
-        const ease = t < 0.1 ? t / 0.1 : 1;
         const y = t * (window.innerHeight + 40);
         const x = drift * Math.sin(t * Math.PI * 2);
         const rot = rotations * t;
-        const op = t > 0.75 ? 1 - (t - 0.75) / 0.25 : ease;
+        const op = t > 0.7 ? 1 - (t - 0.7) / 0.3 : 1;
         el.style.transform = `translate(${x}px, ${y}px) rotate(${rot}deg)`;
         el.style.opacity = op;
         requestAnimationFrame(animate);
       })(performance.now());
 
-    }, i * 20);
+    }, i * 25);
   }
 }
 </script>
