@@ -172,6 +172,16 @@ async def on_webapp_data(msg: types.Message):
     user = msg.from_user
     log.info(f"web_app_data from {user.id} @{user.username}: {msg.web_app_data.data}")
 
+    # Проверка подписки — даже если обошли бота напрямую
+    if not await is_subscribed(user.id):
+        log.warning(f"User {user.id} sent web_app_data without subscription — blocked!")
+        await msg.answer(
+            "❌ Прокрут не засчитан — ты не подписан на канал!\n\n"
+            "Подпишись и начни заново через /start",
+            reply_markup=kb_subscribe()
+        )
+        return
+
     try:
         data = json.loads(msg.web_app_data.data)
         prize = data.get("prize", "—")
