@@ -48,9 +48,17 @@ def already_spun(user_id: int) -> bool:
     uid = str(user_id)
     if uid not in db["spins"]:
         return False
+    from datetime import timedelta
     now = datetime.now(timezone.utc)
     s = db["spins"][uid]
-    return s["year"] == now.year and s["month"] == now.month
+    spin_date_str = s.get("date", "")
+    # Check if 14 days have passed since last spin
+    try:
+        spin_dt = datetime.strptime(spin_date_str, "%d.%m.%Y %H:%M").replace(tzinfo=timezone.utc)
+        return (now - spin_dt).days < 14
+    except Exception:
+        # Fallback to old month-based check
+        return s["year"] == now.year and s["month"] == now.month
 
 def record_spin(user_id: int, username: str, full_name: str, prize: str):
     db = load_db()
@@ -97,7 +105,8 @@ RULES = (
     "• Участие — добровольное и <b>бесплатное</b>\n"
     "• Призы — скидки и бесплатные услуги\n"
     "• Денежные средства не вносятся и не разыгрываются\n"
-    "• <b>1 участие на 1 аккаунт в месяц</b>\n"
+    "• <b>1 участие на 1 аккаунт раз в 14 дней</b>\n"
+    "• <b>Бонус действует 7 дней</b> с момента розыгрыша, затем сгорает\n"
     "• Необходима подписка на канал организатора\n\n"
     "⏱ <b>Срок выдачи приза — до 14 календарных дней.</b>\n"
     "В случае форс-мажора организатор вправе перенести срок, уведомив участника.\n\n"
@@ -151,7 +160,7 @@ async def check_and_show(msg: types.Message, user: types.User):
         await msg.answer("📢 Для участия нужно подписаться на канал!", reply_markup=kb_subscribe())
         return
     if already_spun(user.id):
-        await msg.answer("⏳ Ты уже крутил рулетку в этом месяце.\nПриходи в следующем! 🙂")
+        await msg.answer("⏳ Ты уже крутил рулетку в течение последних 14 дней.\nПриходи позже! 🙂")
         return
     await msg.answer("🎰 Всё готово! Нажми кнопку и крути рулетку!", reply_markup=kb_spin())
 
@@ -171,7 +180,7 @@ async def on_webapp_data(msg: types.Message):
     # Защита от двойного прокрута
     if already_spun(user.id):
         await msg.answer(
-            "⚠️ Твой прокрут уже засчитан!\nВозвращайся в следующем месяце 🙂",
+            "⚠️ Твой прокрут уже засчитан!\nВозвращайся через 14 дней 🙂",
             reply_markup=types.ReplyKeyboardRemove()
         )
         return
@@ -189,7 +198,8 @@ async def on_webapp_data(msg: types.Message):
             f"🎉 <b>Поздравляем!</b>\n\n"
             f"Твой приз: <b>{prize}</b>\n\n"
             f"Напиши нам чтобы получить приз.\n"
-            f"⏱ Срок выдачи — до 14 дней.",
+            f"⏱ Срок выдачи — до 14 дней.\n"
+            f"⚠️ <b>Бонус действует 7 дней</b> — не забудь воспользоваться!",
             parse_mode="HTML",
             reply_markup=types.ReplyKeyboardRemove()
         )
