@@ -81,7 +81,7 @@ body::before {
 
 .wheel-wrapper {
   position: relative;
-  width: min(360px, 92vw); height: min(360px, 92vw);
+  width: min(290px, 88vw); height: min(290px, 88vw);
   margin: 0 auto 16px; flex-shrink: 0;
 }
 .wheel-pointer {
@@ -98,11 +98,11 @@ canvas {
 }
 .center-hub {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-  width: 60px; height: 60px; border-radius: 50%;
+  width: 54px; height: 54px; border-radius: 50%;
   background: linear-gradient(135deg, var(--gold), var(--gold2));
   display: flex; align-items: center; justify-content: center;
   font-family: 'Unbounded', sans-serif; font-size: 9px; font-weight: 700;
-  color: #000; cursor: pointer; border: none; z-index: 5;
+  color: #000; cursor: pointer; border: none; z-index: 20;
   box-shadow: 0 0 18px rgba(255,215,0,0.5); text-align: center; line-height: 1.2;
   transition: transform 0.15s, box-shadow 0.15s;
 }
@@ -112,7 +112,7 @@ canvas {
 .result-card {
   background: var(--card); border: 1px solid var(--border);
   border-radius: 14px; padding: 16px 20px; text-align: center;
-  width: 100%; max-width: 360px; flex-shrink: 0;
+  width: 100%; max-width: 290px; flex-shrink: 0;
   transition: border-color 0.4s, box-shadow 0.4s;
 }
 .result-card.won { border-color: var(--gold); box-shadow: 0 0 20px rgba(255,215,0,0.1); }
@@ -125,7 +125,7 @@ canvas {
   background: linear-gradient(135deg, var(--gold), var(--gold2));
   border: none; border-radius: 14px; padding: 14px 24px;
   font-family: 'Unbounded', sans-serif; font-size: 11px; font-weight: 700;
-  color: #000; cursor: pointer; width: 100%; max-width: 360px;
+  color: #000; cursor: pointer; width: 100%; max-width: 290px;
   box-shadow: 0 4px 18px rgba(255,215,0,0.35);
   animation: btnPulse 1.6s infinite;
 }
@@ -181,7 +181,7 @@ canvas {
   <p class="wh-sub">Крути и получи бонус!</p>
   <div class="wheel-wrapper">
     <div class="wheel-pointer"></div>
-    <canvas id="wheel" width="360" height="360"></canvas>
+    <canvas id="wheel" width="290" height="290"></canvas>
     <button class="center-hub" id="spinBtn" onclick="spin()">КРУТИ!</button>
   </div>
   <div class="result-card" id="resultCard">
@@ -233,27 +233,54 @@ function drawWheel(a) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   for (let i = 0; i < N; i++) {
     const s = a + i * ARC, e = s + ARC, p = PRIZES[i];
+
+    // Сектор
     ctx.beginPath(); ctx.moveTo(CX, CY); ctx.arc(CX, CY, R, s, e); ctx.closePath();
     ctx.fillStyle = p.color; ctx.fill();
     ctx.strokeStyle = '#08080f'; ctx.lineWidth = 2; ctx.stroke();
-    ctx.beginPath(); ctx.arc(CX, CY, R - 8, s + 0.05, e - 0.05);
+
+    // Цветная дуга по краю
+    ctx.beginPath(); ctx.arc(CX, CY, R - 7, s + 0.05, e - 0.05);
     ctx.strokeStyle = p.accent; ctx.lineWidth = 4; ctx.stroke();
+
+    // Текст
     ctx.save();
-    ctx.translate(CX, CY); ctx.rotate(s + ARC / 2);
-    // text shadow for readability
+    ctx.translate(CX, CY);
+    ctx.rotate(s + ARC / 2);
+
+    const lines = p.label.split('\n');
+    const fontSize = 11;
+    const lineH = 14;
+    const textX = R - 14;
+    const totalH = lines.length * lineH;
+    const startY = -(totalH / 2) + lineH * 0.5;
+
+    // Подложка под текст для читаемости
+    ctx.save();
+    const padX = 4, padY = 2;
+    ctx.font = `bold ${fontSize}px Inter, sans-serif`;
+    const maxW = lines.reduce((m, l) => Math.max(m, ctx.measureText(l).width), 0);
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(textX - maxW - padX, startY - lineH * 0.75 - padY, maxW + padX * 2, totalH + padY * 2);
+    ctx.restore();
+
+    // Текст поверх
     ctx.textAlign = 'right';
-    ctx.shadowColor = 'rgba(0,0,0,0.8)';
-    ctx.shadowBlur = 4;
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 13px Inter, sans-serif';
-    p.label.split('\n').forEach((ln, li, arr) => {
-      ctx.fillText(ln, R - 16, (li - (arr.length - 1) / 2) * 16 + 5);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `bold ${fontSize}px Inter, sans-serif`;
+    ctx.shadowColor = 'rgba(0,0,0,0.9)';
+    ctx.shadowBlur = 3;
+    lines.forEach((ln, li) => {
+      ctx.fillText(ln, textX, startY + li * lineH);
     });
+
     ctx.restore();
   }
-  ctx.beginPath(); ctx.arc(CX, CY, 32, 0, 2 * Math.PI);
+
+  // Центральный круг
+  ctx.beginPath(); ctx.arc(CX, CY, 29, 0, 2 * Math.PI);
   ctx.fillStyle = '#08080f'; ctx.fill();
-  ctx.strokeStyle = '#222230'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.strokeStyle = '#333340'; ctx.lineWidth = 2; ctx.stroke();
 }
 
 drawWheel(angle);
