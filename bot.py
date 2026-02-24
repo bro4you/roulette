@@ -209,6 +209,7 @@ async def on_webapp_data(msg: types.Message):
 
     if ADMIN_ID:
         emoji = "😅" if is_loss else "🏆"
+        log.info(f"Sending admin notify to {ADMIN_ID} for user {user.id}...")
         try:
             await bot.send_message(
                 ADMIN_ID,
@@ -219,8 +220,9 @@ async def on_webapp_data(msg: types.Message):
                 f"🕐 {datetime.now().strftime('%d.%m.%Y %H:%M')}",
                 parse_mode="HTML"
             )
+            log.info(f"Admin notify sent OK to {ADMIN_ID}")
         except Exception as e:
-            log.error(f"Admin notify failed: {e}")
+            log.error(f"Admin notify FAILED to {ADMIN_ID}: {e}")
 
 # ── Команды для админа ────────────────────────────
 
