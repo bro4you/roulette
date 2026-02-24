@@ -1,7 +1,6 @@
 """
-🎰 Рулетка-бот v4 — прокрут раз в 14 дней
+🎰 Рулетка-бот v3 — обновлённая версия (14 дней + 7 дней бонус)
 """
-
 import os, json, logging
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -24,7 +23,7 @@ DB_FILE    = Path("/tmp/spins.json")
 bot = Bot(token=BOT_TOKEN)
 dp  = Dispatcher()
 
-# ───────── БАЗА ─────────
+# ── База данных ──────────────────────
 
 def load_db():
     if DB_FILE.exists():
@@ -66,29 +65,29 @@ def set_agreed(user_id):
     db.setdefault("agreed", []).append(str(user_id))
     save_db(db)
 
-# ───────── ПРАВИЛА ─────────
+# ── Правила ──────────────────────────
 
 RULES = (
-    "📋 <b>Правила участия</b>\n\n"
-    "• Участие бесплатное\n"
-    "• 1 участие раз в 14 дней\n"
-    "• Бонус действует 7 дней\n"
-    "• Требуется подписка на канал\n\n"
+    "📋 <b>Правила участия в акции</b>\n\n"
+    "• Участие — добровольное и бесплатное\n"
+    "• 1 участие на 1 аккаунт раз в 14 дней\n"
+    "• Бонус действует 7 дней с момента выигрыша\n"
+    "• Необходима подписка на канал\n\n"
     "⏱ Срок выдачи приза — до 14 дней."
 )
 
 def kb_rules():
     return InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="✅ Принимаю", callback_data="agree")
+        InlineKeyboardButton(text="✅ Принимаю правила", callback_data="agree")
     ]])
 
 def kb_spin():
     return ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text="🎰 Крутить", web_app=WebAppInfo(url=WEBAPP_URL))]],
-        resize_keyboard=True
+        keyboard=[[KeyboardButton(text="🎰 Крутить рулетку!", web_app=WebAppInfo(url=WEBAPP_URL))]],
+        resize_keyboard=True, one_time_keyboard=True
     )
 
-# ───────── ХЭНДЛЕРЫ ─────────
+# ── Хэндлеры ─────────────────────────
 
 @dp.message(CommandStart())
 async def start(msg: types.Message):
@@ -96,40 +95,44 @@ async def start(msg: types.Message):
         await msg.answer(RULES, reply_markup=kb_rules(), parse_mode="HTML")
     else:
         if already_spun(msg.from_user.id):
-            await msg.answer("⏳ Ты уже крутил рулетку. Попробуй через 14 дней.")
+            await msg.answer("⏳ Ты уже крутил рулетку. Попробуй снова через 14 дней.")
         else:
-            await msg.answer("🎰 Нажми кнопку и крути!", reply_markup=kb_spin())
+            await msg.answer("🎰 Всё готово! Нажми кнопку и крути рулетку!", reply_markup=kb_spin())
 
 @dp.callback_query(F.data == "agree")
-async def agree(call: types.CallbackQuery):
+async def on_agree(call: types.CallbackQuery):
     set_agreed(call.from_user.id)
-    await call.message.edit_reply_markup()
+    await call.message.edit_reply_markup(reply_markup=None)
     await call.message.answer("🎰 Теперь можешь крутить!", reply_markup=kb_spin())
 
 @dp.message(F.web_app_data)
-async def result(msg: types.Message):
+async def on_webapp_data(msg: types.Message):
     user = msg.from_user
 
     if already_spun(user.id):
-        await msg.answer("⚠️ Прокрут уже был.")
+        await msg.answer("⚠️ Твой прокрут уже засчитан.")
         return
 
     data = json.loads(msg.web_app_data.data)
-    prize = data.get("prize", "-")
+    prize = data.get("prize", "—")
 
     record_spin(user.id, user.username or "", user.full_name or "", prize)
 
     await msg.answer(
-        f"🎉 <b>Твой приз:</b> {prize}\n\n"
+        f"🎉 <b>Поздравляем!</b>\n\n"
+        f"Твой приз: <b>{prize}</b>\n\n"
         f"⚠️ Бонус действует 7 дней.\n"
-        f"Напиши нам для получения.",
+        f"Напиши нам чтобы получить приз.\n"
+        f"⏱ Срок выдачи — до 14 дней.",
         parse_mode="HTML"
     )
 
     if ADMIN_ID:
         await bot.send_message(
             ADMIN_ID,
-            f"🎰 Новый прокрут\n{user.full_name} (@{user.username})\nПриз: {prize}"
+            f"🎰 Новый прокрут!\n"
+            f"{user.full_name} (@{user.username})\n"
+            f"Приз: {prize}"
         )
 
 async def main():
