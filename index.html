@@ -81,7 +81,7 @@ body::before {
 
 .wheel-wrapper {
   position: relative;
-  width: min(290px, 80vw); height: min(290px, 80vw);
+  width: min(360px, 92vw); height: min(360px, 92vw);
   margin: 0 auto 16px; flex-shrink: 0;
 }
 .wheel-pointer {
@@ -98,10 +98,10 @@ canvas {
 }
 .center-hub {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-  width: 50px; height: 50px; border-radius: 50%;
+  width: 60px; height: 60px; border-radius: 50%;
   background: linear-gradient(135deg, var(--gold), var(--gold2));
   display: flex; align-items: center; justify-content: center;
-  font-family: 'Unbounded', sans-serif; font-size: 8px; font-weight: 700;
+  font-family: 'Unbounded', sans-serif; font-size: 9px; font-weight: 700;
   color: #000; cursor: pointer; border: none; z-index: 5;
   box-shadow: 0 0 18px rgba(255,215,0,0.5); text-align: center; line-height: 1.2;
   transition: transform 0.15s, box-shadow 0.15s;
@@ -112,7 +112,7 @@ canvas {
 .result-card {
   background: var(--card); border: 1px solid var(--border);
   border-radius: 14px; padding: 16px 20px; text-align: center;
-  width: 100%; max-width: 290px; flex-shrink: 0;
+  width: 100%; max-width: 360px; flex-shrink: 0;
   transition: border-color 0.4s, box-shadow 0.4s;
 }
 .result-card.won { border-color: var(--gold); box-shadow: 0 0 20px rgba(255,215,0,0.1); }
@@ -125,7 +125,7 @@ canvas {
   background: linear-gradient(135deg, var(--gold), var(--gold2));
   border: none; border-radius: 14px; padding: 14px 24px;
   font-family: 'Unbounded', sans-serif; font-size: 11px; font-weight: 700;
-  color: #000; cursor: pointer; width: 100%; max-width: 290px;
+  color: #000; cursor: pointer; width: 100%; max-width: 360px;
   box-shadow: 0 4px 18px rgba(255,215,0,0.35);
   animation: btnPulse 1.6s infinite;
 }
@@ -181,7 +181,7 @@ canvas {
   <p class="wh-sub">Крути и получи бонус!</p>
   <div class="wheel-wrapper">
     <div class="wheel-pointer"></div>
-    <canvas id="wheel" width="290" height="290"></canvas>
+    <canvas id="wheel" width="360" height="360"></canvas>
     <button class="center-hub" id="spinBtn" onclick="spin()">КРУТИ!</button>
   </div>
   <div class="result-card" id="resultCard">
@@ -208,7 +208,7 @@ const PRIZES = [
   { label: "15% на\nзаполн. авито",   color: "#1a1208", accent: "#FF9F43", weight: 10 },
   { label: "15% на\nготовый профи",   color: "#141428", accent: "#B48FFF", weight: 15 },
   { label: "1 отзыв\nбесплатно",      color: "#1a0e0e", accent: "#FF4444", weight: 5  },
-  { label: "Пустой\nяндекс в подарок",color: "#0d1a10", accent: "#3EFF9A", weight: 10 },
+  { label: "Пустой\nяндекс в подарок",color: "#0d1a10", accent: "#3EFF9A", weight: 10, note: "🎁 При покупке заполненного аккаунта Яндекс" },
   { label: "5% на\nяндекс акк",       color: "#141420", accent: "#C8A0FF", weight: 5  },
   { label: "20% на\nзаполн. авито",   color: "#1a150e", accent: "#FFB347", weight: 5  },
 ];
@@ -236,17 +236,22 @@ function drawWheel(a) {
     ctx.beginPath(); ctx.moveTo(CX, CY); ctx.arc(CX, CY, R, s, e); ctx.closePath();
     ctx.fillStyle = p.color; ctx.fill();
     ctx.strokeStyle = '#08080f'; ctx.lineWidth = 2; ctx.stroke();
-    ctx.beginPath(); ctx.arc(CX, CY, R - 7, s + 0.06, e - 0.06);
-    ctx.strokeStyle = p.accent; ctx.lineWidth = 3.5; ctx.stroke();
+    ctx.beginPath(); ctx.arc(CX, CY, R - 8, s + 0.05, e - 0.05);
+    ctx.strokeStyle = p.accent; ctx.lineWidth = 4; ctx.stroke();
     ctx.save();
     ctx.translate(CX, CY); ctx.rotate(s + ARC / 2);
-    ctx.textAlign = 'right'; ctx.fillStyle = '#fff'; ctx.font = 'bold 10px Inter';
+    // text shadow for readability
+    ctx.textAlign = 'right';
+    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+    ctx.shadowBlur = 4;
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 13px Inter, sans-serif';
     p.label.split('\n').forEach((ln, li, arr) => {
-      ctx.fillText(ln, R - 12, (li - (arr.length - 1) / 2) * 13 + 4);
+      ctx.fillText(ln, R - 16, (li - (arr.length - 1) / 2) * 16 + 5);
     });
     ctx.restore();
   }
-  ctx.beginPath(); ctx.arc(CX, CY, 28, 0, 2 * Math.PI);
+  ctx.beginPath(); ctx.arc(CX, CY, 32, 0, 2 * Math.PI);
   ctx.fillStyle = '#08080f'; ctx.fill();
   ctx.strokeStyle = '#222230'; ctx.lineWidth = 2; ctx.stroke();
 }
@@ -287,9 +292,10 @@ function showResult(p) {
   text.style.color = p.accent;
 
   // Сразу отправляем боту — прокрут зафиксирован
+  const prizeText = p.label.replace('\n', ' ') + (p.note ? ' (' + p.note.replace(/^[^\s]+\s/, '') + ')' : '');
   if (tg && tg.sendData) {
     try {
-      tg.sendData(JSON.stringify({ prize: p.label.replace('\n', ' '), ts: Date.now() }));
+      tg.sendData(JSON.stringify({ prize: prizeText, ts: Date.now() }));
     } catch(e) { console.log('sendData error:', e); }
   }
 
@@ -299,7 +305,11 @@ function showResult(p) {
     btn.textContent = '👌 Понятно, закрыть';
     btn.style.cssText += ';background:#1a1a2e;color:#888;box-shadow:none;animation:none;';
   } else {
-    hint.textContent = 'Бот пришлёт подтверждение в чат 🎉 Бонус действует 7 дней!';
+    if (p.note) {
+      hint.innerHTML = `<span style="color:${p.accent};font-size:12px;font-weight:600;">${p.note}</span><br><span style="color:var(--muted)">Бот пришлёт подтверждение 🎉 Бонус — 7 дней</span>`;
+    } else {
+      hint.textContent = 'Бот пришлёт подтверждение в чат 🎉 Бонус действует 7 дней!';
+    }
     btn.textContent = '🎁 Отлично, закрыть!';
     confetti(p.accent);
   }
@@ -316,15 +326,65 @@ function agreeAndPlay() {
 }
 
 function confetti(accent) {
-  const colors = ['#FFD700','#FF6BCB','#00C8FF','#A8FF3E', accent];
-  for (let i = 0; i < 60; i++) {
+  const colors = ['#FFD700','#FF6BCB','#00C8FF','#A8FF3E','#FF9F43','#FF4444','#B48FFF', accent];
+  const shapes = ['square', 'circle', 'star'];
+  const total = 120;
+
+  for (let i = 0; i < total; i++) {
     setTimeout(() => {
-      const el = document.createElement('div');
-      el.className = 'cf';
-      el.style.cssText = `left:${Math.random()*100}vw;background:${colors[~~(Math.random()*colors.length)]};animation-duration:${1.5+Math.random()*2}s;animation-delay:${Math.random()*0.3}s`;
+      const el = document.createElement('canvas');
+      const size = 6 + Math.random() * 8;
+      el.width = size * 2; el.height = size * 2;
+      const c = el.getContext('2d');
+      const color = colors[~~(Math.random() * colors.length)];
+      const shape = shapes[~~(Math.random() * shapes.length)];
+
+      c.fillStyle = color;
+      if (shape === 'circle') {
+        c.beginPath(); c.arc(size, size, size * 0.8, 0, Math.PI * 2); c.fill();
+      } else if (shape === 'star') {
+        c.save(); c.translate(size, size);
+        c.beginPath();
+        for (let j = 0; j < 5; j++) {
+          const a = (j * 4 * Math.PI) / 5 - Math.PI / 2;
+          j === 0 ? c.moveTo(Math.cos(a)*size*0.9, Math.sin(a)*size*0.9)
+                  : c.lineTo(Math.cos(a)*size*0.9, Math.sin(a)*size*0.9);
+        }
+        c.closePath(); c.fill(); c.restore();
+      } else {
+        c.fillRect(size * 0.1, size * 0.1, size * 1.8, size * 1.8);
+      }
+
+      el.style.cssText = `
+        position:fixed;
+        left:${Math.random()*110 - 5}vw;
+        top:-20px;
+        pointer-events:none;
+        z-index:9999;
+        opacity:1;
+        transform-origin:center;
+      `;
       document.body.appendChild(el);
-      setTimeout(() => el.remove(), 4000);
-    }, i * 25);
+
+      const dur = 2500 + Math.random() * 2500;
+      const drift = (Math.random() - 0.5) * 300;
+      const rotations = 360 * (2 + Math.random() * 4) * (Math.random() > 0.5 ? 1 : -1);
+      const startTime = performance.now();
+
+      (function animate(now) {
+        const t = (now - startTime) / dur;
+        if (t >= 1) { el.remove(); return; }
+        const ease = t < 0.1 ? t / 0.1 : 1;
+        const y = t * (window.innerHeight + 40);
+        const x = drift * Math.sin(t * Math.PI * 2);
+        const rot = rotations * t;
+        const op = t > 0.75 ? 1 - (t - 0.75) / 0.25 : ease;
+        el.style.transform = `translate(${x}px, ${y}px) rotate(${rot}deg)`;
+        el.style.opacity = op;
+        requestAnimationFrame(animate);
+      })(performance.now());
+
+    }, i * 20);
   }
 }
 </script>
