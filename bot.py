@@ -1,7 +1,7 @@
 """
-🎰 Рулетка-бот v3 — полная перепись
+🎰 Рулетка-бот v4 — постоянное хранение + рассылка
 """
-import os, json, logging
+import os, json, logging, asyncio
 from datetime import datetime, timezone
 from pathlib import Path
 from aiogram import Bot, Dispatcher, types, F
@@ -21,7 +21,19 @@ BOT_TOKEN  = os.getenv("BOT_TOKEN", "")
 ADMIN_ID   = int(os.getenv("ADMIN_ID", "0"))
 CHANNEL_ID = os.getenv("CHANNEL_ID", "")
 WEBAPP_URL = os.getenv("WEBAPP_URL", "https://bro4you.github.io/roulette")
-DB_FILE    = Path("/tmp/spins.json")
+
+# Постоянное хранилище: если подключён Volume на Railway — /data/spins.json
+# Если нет — падаем обратно на /tmp (но лучше подключить Volume!)
+_DATA_DIR = Path(os.getenv("DATA_DIR", "/data"))
+try:
+    _DATA_DIR.mkdir(parents=True, exist_ok=True)
+    DB_FILE = _DATA_DIR / "spins.json"
+    # Проверим, что папка реально доступна для записи
+    DB_FILE.touch(exist_ok=True)
+    log.info(f"DB path: {DB_FILE}")
+except Exception:
+    log.warning("⚠️  /data недоступен — используем /tmp (данные могут сброситься при рестарте!)")
+    DB_FILE = Path("/tmp/spins.json")
 # ══════════════════════════════════════
 
 bot = Bot(token=BOT_TOKEN)
@@ -35,11 +47,11 @@ def load_db() -> dict:
             return json.loads(DB_FILE.read_text())
     except Exception as e:
         log.error(f"DB load error: {e}")
-    return {"spins": {}, "agreed": []}
+    return {"spins": {}, "agreed": [], "users": {}}
 
 def save_db(db: dict):
     try:
-        DB_FILE.write_text(json.dumps(db, ensure_ascii=False))
+        DB_FILE.write_text(json.dumps(db, ensure_ascii=False, indent=2))
     except Exception as e:
         log.error(f"DB save error: {e}")
 
@@ -48,16 +60,13 @@ def already_spun(user_id: int) -> bool:
     uid = str(user_id)
     if uid not in db["spins"]:
         return False
-    from datetime import timedelta
     now = datetime.now(timezone.utc)
     s = db["spins"][uid]
     spin_date_str = s.get("date", "")
-    # Check if 14 days have passed since last spin
     try:
         spin_dt = datetime.strptime(spin_date_str, "%d.%m.%Y %H:%M").replace(tzinfo=timezone.utc)
         return (now - spin_dt).days < 14
     except Exception:
-        # Fallback to old month-based check
         return s["year"] == now.year and s["month"] == now.month
 
 def record_spin(user_id: int, username: str, full_name: str, prize: str):
@@ -84,6 +93,23 @@ def set_agreed(user_id: int):
         db["agreed"].append(uid)
     save_db(db)
 
+def register_user(user: types.User):
+    """Сохраняем пользователя в базу для рассылки"""
+    db = load_db()
+    if "users" not in db:
+        db["users"] = {}
+    uid = str(user.id)
+    db["users"][uid] = {
+        "username": user.username or "",
+        "full_name": user.full_name or "",
+        "id": user.id
+    }
+    save_db(db)
+
+def get_all_users() -> list[dict]:
+    db = load_db()
+    return list(db.get("users", {}).values())
+
 # ── Проверка подписки ────────────────────────────
 
 async def is_subscribed(user_id: int) -> bool:
@@ -96,7 +122,6 @@ async def is_subscribed(user_id: int) -> bool:
         return member.status in ("member", "administrator", "creator")
     except Exception as e:
         log.error(f"Sub check FAILED user={user_id} channel={CHANNEL_ID} error={e}")
-        # Возвращаем False — лучше отказать, чем пропустить без проверки
         return False
 
 # ── Тексты и клавиатуры ──────────────────────────
@@ -137,6 +162,7 @@ def kb_subscribe():
 
 @dp.message(CommandStart())
 async def start(msg: types.Message):
+    register_user(msg.from_user)  # Сохраняем для рассылки
     if not has_agreed(msg.from_user.id):
         await msg.answer(RULES, reply_markup=kb_rules(), parse_mode="HTML")
     else:
@@ -172,7 +198,6 @@ async def on_webapp_data(msg: types.Message):
     user = msg.from_user
     log.info(f"web_app_data from {user.id} @{user.username}: {msg.web_app_data.data}")
 
-    # Проверка подписки — даже если обошли бота напрямую
     if not await is_subscribed(user.id):
         log.warning(f"User {user.id} sent web_app_data without subscription — blocked!")
         await msg.answer(
@@ -190,7 +215,6 @@ async def on_webapp_data(msg: types.Message):
         await msg.answer("Ошибка. Напиши /start и попробуй снова.")
         return
 
-    # Защита от двойного прокрута
     if already_spun(user.id):
         await msg.answer(
             "⚠️ Твой прокрут уже засчитан!\nВозвращайся через 14 дней 🙂",
@@ -242,21 +266,77 @@ async def stats(msg: types.Message):
         return
     db = load_db()
     spins = db.get("spins", {})
+    users_count = len(db.get("users", {}))
     now = datetime.now(timezone.utc)
     this_month = [(v["full_name"], v["username"], v["prize"], v["date"])
                   for v in spins.values()
                   if v["year"] == now.year and v["month"] == now.month]
-    if not this_month:
-        await msg.answer("В этом месяце прокрутов ещё не было.")
-        return
-    lines = [f"📊 <b>Прокруты за {now.strftime('%m.%Y')}:</b>\n"]
-    for name, uname, prize, date in this_month:
-        lines.append(f"• {name} (@{uname or '—'}) — {prize} [{date}]")
+    lines = [f"📊 <b>Статистика за {now.strftime('%m.%Y')}:</b>\n",
+             f"👥 Всего пользователей в базе: <b>{users_count}</b>\n"]
+    if this_month:
+        for name, uname, prize, date in this_month:
+            lines.append(f"• {name} (@{uname or '—'}) — {prize} [{date}]")
+    else:
+        lines.append("Прокрутов в этом месяце ещё не было.")
     await msg.answer("\n".join(lines), parse_mode="HTML")
+
+@dp.message(Command("broadcast"))
+async def broadcast(msg: types.Message):
+    """Рассылка всем пользователям.
+    Использование: /broadcast Текст сообщения
+    Поддерживает HTML-разметку: <b>жирный</b>, <i>курсив</i>
+    """
+    if msg.from_user.id != ADMIN_ID:
+        return
+
+    text = msg.text.removeprefix("/broadcast").strip()
+    if not text:
+        await msg.answer(
+            "📢 <b>Рассылка</b>\n\n"
+            "Использование:\n"
+            "<code>/broadcast Текст сообщения</code>\n\n"
+            "Поддерживается HTML:\n"
+            "<code>/broadcast 🎰 &lt;b&gt;Акция!&lt;/b&gt; Крути рулетку прямо сейчас!</code>",
+            parse_mode="HTML"
+        )
+        return
+
+    users = get_all_users()
+    total = len(users)
+    if total == 0:
+        await msg.answer("❌ В базе нет пользователей.")
+        return
+
+    await msg.answer(f"📤 Начинаю рассылку для <b>{total}</b> пользователей...", parse_mode="HTML")
+
+    sent = 0
+    failed = 0
+    blocked = 0
+
+    for user in users:
+        try:
+            await bot.send_message(user["id"], text, parse_mode="HTML")
+            sent += 1
+        except Exception as e:
+            err = str(e).lower()
+            if "blocked" in err or "deactivated" in err or "chat not found" in err:
+                blocked += 1
+            else:
+                failed += 1
+                log.error(f"Broadcast failed for {user['id']}: {e}")
+        # Небольшая пауза чтобы не получить флуд-блок от Telegram
+        await asyncio.sleep(0.05)
+
+    await msg.answer(
+        f"✅ <b>Рассылка завершена!</b>\n\n"
+        f"📨 Отправлено: <b>{sent}</b>\n"
+        f"🚫 Заблокировали бота: <b>{blocked}</b>\n"
+        f"❌ Ошибки: <b>{failed}</b>",
+        parse_mode="HTML"
+    )
 
 @dp.message(Command("reset_me"))
 async def reset_me(msg: types.Message):
-    """Сброс своего прокрута для теста"""
     if msg.from_user.id != ADMIN_ID:
         return
     db = load_db()
@@ -266,23 +346,20 @@ async def reset_me(msg: types.Message):
         save_db(db)
         await msg.answer("✅ Твой прокрут сброшен.")
     else:
-        await msg.answer("У тебя нет прокрута в этом месяце.")
+        await msg.answer("У тебя нет прокрута в базе.")
 
 @dp.message(Command("reset_all"))
 async def reset_all(msg: types.Message):
-    """Сброс ВСЕЙ базы прокрутов"""
     if msg.from_user.id != ADMIN_ID:
         return
     db = load_db()
     count = len(db["spins"])
     db["spins"] = {}
     save_db(db)
-    await msg.answer(f"✅ База полностью сброшена. Удалено записей: {count}")
+    await msg.answer(f"✅ База прокрутов полностью сброшена. Удалено записей: {count}")
 
 @dp.message(Command("reset_user"))
 async def reset_user(msg: types.Message):
-    """Сброс конкретного пользователя.
-    Использование: /reset_user 123456789"""
     if msg.from_user.id != ADMIN_ID:
         return
     parts = msg.text.split()
@@ -308,10 +385,9 @@ async def reset_user(msg: types.Message):
 # ── Запуск ────────────────────────────────────────
 
 async def main():
-    log.info("Starting bot v3...")
+    log.info("Starting bot v4...")
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot, allowed_updates=["message", "callback_query"])
 
 if __name__ == "__main__":
-    import asyncio
     asyncio.run(main())
