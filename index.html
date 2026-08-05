@@ -152,19 +152,19 @@ canvas {
     <div class="section">ℹ️ Что это такое?</div>
     Данная акция является <b>маркетинговой программой лояльности</b> и не является азартной игрой, лотереей или иной формой gambling. Призы носят маркетинговый характер. Денежные средства не вносятся и не разыгрываются.
 
-    <div class="section">📌 Условия участия</div>
+    <div class="section">📋 Условия участия</div>
     • Участие — добровольное и <b>бесплатное</b><br>
     • <b>1 участие на 1 аккаунт раз в 14 дней</b><br>
     • Необходима активная подписка на канал организатора<br>
     • Участник должен быть совершеннолетним
 
-    <div class="section">🏆 Призы</div>
+    <div class="section">🎁 Призы</div>
     Призы — маркетинговые бонусы: скидки и бесплатные услуги. Денежный эквивалент не предусмотрен. Передача приза третьим лицам не допускается. <b>Бонус действует 7 дней</b> с момента розыгрыша, после чего сгорает.
 
     <div class="section">⏱ Срок выдачи</div>
     <b>До 14 календарных дней</b> с момента розыгрыша. В случае форс-мажора организатор вправе перенести срок, уведомив участника.
 
-    <div class="section">📋 Прочее</div>
+    <div class="section">📌 Прочее</div>
     • Организатор вправе изменять призовой фонд<br>
     • Результат розыгрыша случаен и окончателен<br>
     • Злоупотребления ведут к дисквалификации
@@ -196,27 +196,23 @@ canvas {
 const tg = window.Telegram?.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
 
-// ══════════════════════════════════════════
+// ────────────────────────────────────────────
 //  ПРИЗЫ — редактируй здесь!
 //  weight: больше = чаще выпадает
-//  Сумма весов: 171
-// ══════════════════════════════════════════
+//  Сумма весов: 161
+// ────────────────────────────────────────────
 const PRIZES = [
-  { label: "+14 дней\nгарантии\nяндекс", color: "#0e2818", accent: "#A8FF3E", weight: 23 },  // 13.2%
-  { label: "15% на\nсайт 16 блоков",    color: "#141428", accent: "#FFD700", weight: 19 },  // 10.9%
-  { label: "20% на\nсайт 9 блоков",     color: "#1a0e2e", accent: "#FF6BCB", weight: 14 },  // 8.0%
-  { label: "15% на\nзаполн. авито",     color: "#1a1208", accent: "#FF9F43", weight: 10 },  // 5.7%
-  { label: "15% на\nготовый профи",     color: "#141428", accent: "#B48FFF", weight: 10 },  // 5.7%
-  { label: "1 отзыв\nбесплатно",        color: "#1a0e0e", accent: "#FF4444", weight: 5  },  // 2.9%
-
-  { label: "5% на\nяндекс акк",         color: "#141420", accent: "#C8A0FF", weight: 12 },  // 6.9%
-  { label: "10% скидка\nна акк яндекс", color: "#1a0e1a", accent: "#FF6B9D", weight: 26 },  // 14.9%
-  { label: "20% на\nяндекс акк",        color: "#0e1a14", accent: "#3EFFC8", weight: 14 },  // 8.0%
-  { label: "20% на\nзаполн. авито",     color: "#1a150e", accent: "#FFB347", weight: 5  },  // 2.9%
-  { label: "5% скидка\nсайт 7 блоков",  color: "#0e1a1a", accent: "#00E5CC", weight: 16 },  // 9.1%
-  { label: "10% скидка\nсайт 12 блоков",color: "#1a1a0e", accent: "#E5D000", weight: 17 },  // 9.7%
+  { label: "15% на\nсайт 16 блоков",     color: "#141428", accent: "#FFD700", weight: 19 },  // 11.8%
+  { label: "15% на\nсайт 9 блоков",      color: "#1a0e2e", accent: "#FF6BCB", weight: 14 },  // 8.7%
+  { label: "5% на\nяндекс акк",          color: "#141420", accent: "#C8A0FF", weight: 12 },  // 7.5%
+  { label: "10% скидка\nна акк яндекс",  color: "#1a0e1a", accent: "#FF6B9D", weight: 26 },  // 16.1%
+  { label: "20% на\nяндекс акк",         color: "#0e1a14", accent: "#3EFFC8", weight: 23 },  // 14.3%
+  { label: "5% скидка\nсайт 7 блоков",   color: "#0e1a1a", accent: "#00E5CC", weight: 16 },  // 9.9%
+  { label: "10% скидка\nсайт 12 блоков", color: "#1a1a0e", accent: "#E5D000", weight: 17 },  // 10.6%
+  { label: "15% на\nоформл. Я.Услуги",   color: "#1a1208", accent: "#FF9F43", weight: 17 },  // 10.6%
+  { label: "10% на\nоформл. Профи.ру",   color: "#141428", accent: "#B48FFF", weight: 17 },  // 10.6%
 ];
-// ══════════════════════════════════════════
+// ────────────────────────────────────────────
 
 const canvas = document.getElementById('wheel');
 const ctx = canvas.getContext('2d');
@@ -326,11 +322,11 @@ function showResult(p) {
     btn.style.cssText += ';background:#1a1a2e;color:#888;box-shadow:none;animation:none;';
   } else {
     if (p.note) {
-      hint.innerHTML = `<span style="color:${p.accent};font-size:12px;font-weight:600;">${p.note}</span><br><span style="color:var(--muted)">Бот пришлёт подтверждение 🎉 Бонус — 7 дней</span>`;
+      hint.innerHTML = `<span style="color:${p.accent};font-size:12px;font-weight:600;">${p.note}</span><br><span style="color:var(--muted)">Мы пришлём подтверждение 📩 Бонус — 7 дней</span>`;
     } else {
-      hint.textContent = 'Бот пришлёт подтверждение в чат 🎉 Бонус действует 7 дней!';
+      hint.textContent = 'Мы пришлём подтверждение в час 📩 Бонус действует 7 дней!';
     }
-    btn.textContent = '🎁 Отлично, закрыть!';
+    btn.textContent = '🎉 Отлично, закрыть!';
     confetti(p.accent);
   }
   btn.style.display = 'block';
